@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  # Container 1: The Core AI Processing Backend API Engine
+  backend-api:
+    build: .
+    container_name: ai_backend_server
+    volumes:
+      - ./chroma_db_storage:/app/chroma_db_storage  # Persists database files on your host disk
+      - ./huggingface_cache:/root/.cache/huggingface # Caches downloaded LLM weights so they don't re-download on restart
+    ports:
+      - "8000:8000"
+    command: uvicorn backend.app:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  # Container 2: The Interactive Streamlit Client Web Dashboard UI
+  frontend-dashboard:
+    build: .
+    container_name: ai_frontend_dashboard
+    ports:
+      - "8501:8501"
+    command: streamlit run frontend/main.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      - backend-api  # Guarantees backend server spins up before launching the client layout
+    restart: unless-stopped
+
+networks:
+  default:
+    name: legal_ease_ai_network
